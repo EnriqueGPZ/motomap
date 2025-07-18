@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Rutas - Google Maps</title>
+    <style>
+        /* --- Estilos Generales --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        /* --- Contenedor Principal --- */
+        #main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden; /* Evita el desbordamiento */
+        }
+
+        /* --- Panel de Controles --- */
+        #controls-panel {
+            width: 350px;
+            padding: 20px;
+            background: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+        
+        #controls-panel h1 {
+            margin-top: 0;
+            font-size: 1.5em;
+            color: #333;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .input-group input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box; /* Importante para el padding */
+        }
+        
+        .waypoint-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .waypoint-item input {
+            flex-grow: 1;
+        }
+
+        .waypoint-item button {
+            margin-left: 8px;
+            padding: 5px 8px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        /* --- Botones --- */
+        .button-container {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        #controls-panel button {
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+
+        #calculate-route {
+            background-color: #4CAF50; /* Verde */
+            color: white;
+            grid-column: 1 / -1; /* Ocupa todo el ancho */
+        }
+
+        #add-waypoint {
+            background-color: #008CBA; /* Azul */
+            color: white;
+        }
+
+        #clear-route {
+            background-color: #f44336; /* Rojo */
+            color: white;
+        }
+
+        #calculate-route:hover { background-color: #45a049; }
+        #add-waypoint:hover { background-color: #007ba7; }
+        #clear-route:hover { background-color: #e33022; }
+
+
+        /* --- Checkbox de Circuito --- */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .checkbox-group input {
+            margin-right: 10px;
+        }
+
+        /* --- Panel de Información --- */
+        #info-panel {
+            padding: 15px;
+            background: #e3f2fd;
+            border-left: 5px solid #2196F3;
+            margin-top: auto; /* Empuja al final del panel */
+            border-radius: 4px;
+        }
+        
+        #info-panel p {
+            margin: 5px 0;
+        }
+
+        /* --- Mapa --- */
+        #map {
+            flex-grow: 1;
+            height: 100%;
+        }
+
+        /* --- Diseño Responsivo --- */
+        @media (max-width: 768px) {
+            #main-container {
+                flex-direction: column;
+            }
+
+            #controls-panel {
+                width: 100%;
+                height: auto;
+                max-height: 50vh; /* Límite para que no ocupe toda la pantalla */
+                box-sizing: border-box;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            }
+            
+            #info-panel {
+                margin-top: 15px;
+            }
+
+            #map {
+                height: 100%; /* El mapa ocupa el espacio restante */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="main-container">
+        <!-- Panel de Controles -->
+        <div id="controls-panel">
+            <h1>Generador de Rutas</h1>
+
+            <div class="input-group">
+                <label for="start">Punto de inicio</label>
+                <input type="text" id="start" placeholder="Escribe una dirección de origen">
+            </div>
+
+            <div class="input-group">
+                <label for="end">Punto de destino</label>
+                <input type="text" id="end" placeholder="Escribe una dirección de destino">
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="is-circuit">
+                <label for="is-circuit">Es un circuito (regresar al inicio)</label>
+            </div>
+
+            <div id="waypoints-container">
+                <!-- Los puntos intermedios se añadirán aquí dinámicamente -->
+            </div>
+            
+            <div class="button-container">
+                <button id="add-waypoint">Añadir Parada</button>
+                <button id="clear-route">Limpiar</button>
+            </div>
+
+            <button id="calculate-route" style="margin-top: 10px;">Calcular Ruta</button>
+
+            <div id="info-panel" style="display: none;">
+                <p><strong>Distancia total:</strong> <span id="total-distance"></span></p>
+                <p><strong>Duración estimada:</strong> <span id="total-duration"></span></p>
+            </div>
+        </div>
+
+        <!-- Contenedor del Mapa -->
+        <div id="map"></div>
+    </div>
+
+    <!-- Script de Google Maps API -->
+    <!-- IMPORTANTE: Reemplaza YOUR_API_KEY con tu propia clave de API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places&callback=initMap" async defer></script>
+
+    <script>
+        let map;
+        let directionsService;
+        let directionsRenderer;
+        let waypointCounter = 0;
+
+        function initMap() {
+            // 1. Inicializar servicios de Google Maps
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer();
+
+            // 2. Crear el mapa centrado en Madrid
+            const madrid = { lat: 40.416775, lng: -3.703790 };
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 10,
+                center: madrid,
+                mapTypeControl: false, // Oculta controles innecesarios
+            });
+
+            // Asociar el renderer al mapa
+            directionsRenderer.setMap(map);
+
+            // 3. Configurar Autocompletado para campos de entrada
+            const startInput = document.getElementById('start');
+            const endInput = document.getElementById('end');
+            
+            const autocompleteOptions = {
+                fields: ["formatted_address", "geometry", "name"],
+                strictBounds: false,
+            };
+
+            new google.maps.places.Autocomplete(startInput, autocompleteOptions);
+            new google.maps.places.Autocomplete(endInput, autocompleteOptions);
+            
+            // 4. Añadir listeners a los botones y checkbox
+            document.getElementById('calculate-route').addEventListener('click', calculateAndDisplayRoute);
+            document.getElementById('clear-route').addEventListener('click', clearRoute);
+            document.getElementById('add-waypoint').addEventListener('click', addWaypointInput);
+            document.getElementById('is-circuit').addEventListener('change', toggleEndInput);
+        }
+
+        function toggleEndInput() {
+            const endInput = document.getElementById('end');
+            const isCircuit = document.getElementById('is-circuit').checked;
+            endInput.disabled = isCircuit;
+            if (isCircuit) {
+                endInput.value = '';
+                endInput.placeholder = 'Regreso al punto de inicio';
+            } else {
+                endInput.placeholder = 'Escribe una dirección de destino';
+            }
+        }
+
+        function addWaypointInput() {
+            waypointCounter++;
+            const container = document.getElementById('waypoints-container');
+            
+            const waypointDiv = document.createElement('div');
+            waypointDiv.className = 'waypoint-item';
+            waypointDiv.id = `waypoint-item-${waypointCounter}`;
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = `Parada ${container.children.length + 1}`;
+            input.className = 'waypoint-input';
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.textContent = 'X';
+            removeBtn.onclick = function() {
+                container.removeChild(waypointDiv);
+                // Renumerar placeholders
+                const inputs = container.querySelectorAll('.waypoint-input');
+                inputs.forEach((inp, index) => {
+                    inp.placeholder = `Parada ${index + 1}`;
+                });
+            };
+
+            waypointDiv.appendChild(input);
+            waypointDiv.appendChild(removeBtn);
+            container.appendChild(waypointDiv);
+            
+            // Habilitar autocompletado para el nuevo campo
+            new google.maps.places.Autocomplete(input);
+        }
+
+        function calculateAndDisplayRoute() {
+            const start = document.getElementById('start').value;
+            const end = document.getElementById('end').value;
+            const isCircuit = document.getElementById('is-circuit').checked;
+
+            if (!start) {
+                alert('Por favor, introduce un punto de inicio.');
+                return;
+            }
+            if (!end && !isCircuit) {
+                alert('Por favor, introduce un punto de destino o marca la opción de circuito.');
+                return;
+            }
+
+            // Recopilar puntos intermedios (waypoints)
+            const waypointInputs = document.querySelectorAll('#waypoints-container .waypoint-input');
+            const waypoints = [];
+            waypointInputs.forEach(input => {
+                if (input.value) {
+                    waypoints.push({
+                        location: input.value,
+                        stopover: true, // Indica que es una parada
+                    });
+                }
+            });
+
+            const request = {
+                origin: start,
+                destination: isCircuit ? start : end,
+                waypoints: waypoints,
+                optimizeWaypoints: true, // Permite a Google reordenar paradas para la ruta más eficiente
+                travelMode: google.maps.TravelMode.DRIVING,
+            };
+
+            directionsService.route(request, (result, status) => {
+                if (status === 'OK') {
+                    directionsRenderer.setDirections(result);
+                    displayRouteInfo(result);
+                } else {
+                    alert('No se pudo calcular la ruta. Razón: ' + status);
+                    clearInfoPanel();
+                }
+            });
+        }
+        
+        function displayRouteInfo(result) {
+            let totalDistance = 0;
+            let totalDuration = 0;
+            const myroute = result.routes[0];
+
+            for (let i = 0; i < myroute.legs.length; i++) {
+                totalDistance += myroute.legs[i].distance.value; // en metros
+                totalDuration += myroute.legs[i].duration.value; // en segundos
+            }
+
+            // Formatear distancia y duración
+            const distanceKm = (totalDistance / 1000).toFixed(2);
+            const durationFormatted = formatDuration(totalDuration);
+
+            // Mostrar en el panel
+            document.getElementById('total-distance').textContent = `${distanceKm} km`;
+            document.getElementById('total-duration').textContent = durationFormatted;
+            document.getElementById('info-panel').style.display = 'block';
+        }
+
+        function formatDuration(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            let result = '';
+            if (hours > 0) {
+                result += `${hours} hora(s) `;
+            }
+            if (minutes > 0) {
+                result += `${minutes} minuto(s)`;
+            }
+            if (result === '') {
+                result = 'Menos de un minuto';
+            }
+            return result.trim();
+        }
+
+        function clearRoute() {
+            // Limpiar el mapa
+            directionsRenderer.setDirections({ routes: [] });
+
+            // Reiniciar mapa a su estado inicial
+            const madrid = { lat: 40.416775, lng: -3.703790 };
+            map.setCenter(madrid);
+            map.setZoom(10);
+
+            // Limpiar campos de entrada
+            document.getElementById('start').value = '';
+            document.getElementById('end').value = '';
+            document.getElementById('waypoints-container').innerHTML = ''; // Elimina todas las paradas
+            
+            // Resetear checkbox y estado del campo 'end'
+            document.getElementById('is-circuit').checked = false;
+            toggleEndInput();
+
+            // Ocultar panel de información
+            clearInfoPanel();
+        }
+
+        function clearInfoPanel() {
+            const infoPanel = document.getElementById('info-panel');
+            infoPanel.style.display = 'none';
+            document.getElementById('total-distance').textContent = '';
+            document.getElementById('total-duration').textContent = '';
+        }
+
+    </script>
+</body>
+</html>
