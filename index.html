@@ -217,8 +217,12 @@
         <div id="map"></div>
     </div>
 
-    <!-- Script de Google Maps API -->
-    <!-- IMPORTANTE: Reemplaza YOUR_API_KEY con tu propia clave de API -->
+    <!-- 
+        ====================================================================
+        ¡¡¡IMPORTANTE!!!
+        REEMPLAZA "YOUR_API_KEY" CON TU CLAVE REAL EN LA LÍNEA DE ABAJO
+        ====================================================================
+    -->
     <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places&callback=initMap" async defer></script>
 
     <script>
@@ -345,7 +349,7 @@
                     directionsRenderer.setDirections(result);
                     displayRouteInfo(result);
                 } else {
-                    alert('No se pudo calcular la ruta. Razón: ' + status);
+                    window.alert('No se pudo calcular la ruta. Razón: ' + status);
                     clearInfoPanel();
                 }
             });
